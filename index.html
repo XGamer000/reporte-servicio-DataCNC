@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bitácora de Servicio Técnico</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Firma táctil -->
+  <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
+  <!-- Generación de PDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  
+  <style>
+    /* Conversión de colores CMYK a HEX para CSS Web */
+    :root {
+      --color-oscuro: #2A3A39; /* C:73 M:53 Y:60 K:42 */
+      --color-claro: #90A894;  /* C:45 M:25 Y:45 K:2 */
+    }
+    .bg-cmyk-dark { background-color: var(--color-oscuro); }
+    .text-cmyk-dark { color: var(--color-oscuro); }
+    .border-cmyk-dark { border-color: var(--color-oscuro); }
+    
+    .bg-cmyk-light { background-color: var(--color-claro); }
+    .text-cmyk-light { color: var(--color-claro); }
+    .border-cmyk-light { border-color: var(--color-claro); }
+  </style>
+</head>
+<body class="bg-cmyk-light p-3 min-h-screen text-slate-800">
+  <div id="reporte" class="max-w-md mx-auto bg-white p-5 rounded-2xl shadow-xl space-y-4">
+    
+    <!-- Encabezado -->
+    <div class="border-b-2 border-cmyk-dark pb-2 text-center">
+      <h1 class="text-xl font-black text-cmyk-dark tracking-wide uppercase">Reporte de Servicio Técnico</h1>
+    </div>
+
+    <!-- Fecha con Calendario -->
+    <div>
+      <label class="block text-xs font-bold text-cmyk-dark uppercase">Fecha del Servicio:</label>
+      <input type="date" id="fecha" class="w-full border-2 border-gray-200 p-2 rounded-lg mt-1 text-sm bg-gray-50 focus:border-cmyk-dark focus:bg-white outline-none font-medium">
+    </div>
+
+    <!-- Datos del Cliente -->
+    <div>
+      <label class="block text-xs font-bold text-cmyk-dark uppercase">Cliente / Empresa:</label>
+      <input type="text" id="cliente" placeholder="Nombre de la empresa" class="w-full border-2 border-gray-200 p-2 rounded-lg mt-1 text-sm bg-gray-50 focus:border-cmyk-dark focus:bg-white outline-none">
+    </div>
+
+    <!-- Menú Desplegable: Tipo de Maquinaria -->
+    <div>
+      <label class="block text-xs font-bold text-cmyk-dark uppercase">Tipo de Maquinaria:</label>
+      <select id="tipoMaquina" class="w-full border-2 border-gray-200 p-2 rounded-lg mt-1 text-sm bg-gray-50 focus:border-cmyk-dark focus:bg-white outline-none font-medium">
+        <option value="" disabled selected>Seleccione una opción...</option>
+        <option value="Soldadora laser">Soldadora laser</option>
+        <option value="Laser de corte">Laser de corte</option>
+        <option value="Laser de corte Rotativo">Laser de corte Rotativo</option>
+        <option value="Limpiadora de cordones">Limpiadora de cordones</option>
+        <option value="Router">Router</option>
+        <option value="Co2">Co2</option>
+        <option value="Dobladora nc">Dobladora nc</option>
+        <option value="Horno">Horno</option>
+        <option value="Pintura electrostatica">Pintura electrostatica</option>
+      </select>
+    </div>
+
+    <!-- Marca y Descripción de la Máquina -->
+    <div class="grid grid-cols-1 gap-3">
+      <div>
+        <label class="block text-xs font-bold text-cmyk-dark uppercase">Marca de la Máquina:</label>
+        <input type="text" id="marca" placeholder="Ej. Bodor, Raycus, etc." class="w-full border-2 border-gray-200 p-2 rounded-lg mt-1 text-sm bg-gray-50 focus:border-cmyk-dark focus:bg-white outline-none">
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-cmyk-dark uppercase">Descripción Rápida de la Máquina:</label>
+        <input type="text" id="descMaquina" placeholder="Ej. 1500W, Doble mesa, Cabezal automático" class="w-full border-2 border-gray-200 p-2 rounded-lg mt-1 text-sm bg-gray-50 focus:border-cmyk-dark focus:bg-white outline-none">
+      </div>
+    </div>
+
+    <!-- Diagnóstico / Trabajos Realizados -->
+    <div>
+      <label class="block text-xs font-bold text-cmyk-dark uppercase">Diagnóstico / Trabajos Realizados:</label>
+      <textarea id="descripcion" placeholder="Detalle las pruebas o reparaciones hechas..." class="w-full border-2 border-gray-200 p-2 rounded-lg mt-1 text-sm bg-gray-50 focus:border-cmyk-dark focus:bg-white outline-none" rows="3"></textarea>
+    </div>
+
+    <!-- Evidencia Fotográfica -->
+    <div>
+      <label class="block text-xs font-bold text-cmyk-dark uppercase">Evidencia Fotográfica:</label>
+      <input type="file" id="fotos" accept="image/*" capture="environment" multiple onchange="mostrarFotos(event)" class="no-pdf w-full mt-1 text-xs text-slate-500 file:mr-2 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-cmyk-light file:text-cmyk-dark">
+      <div id="galeria" class="grid grid-cols-2 gap-2 mt-2"></div>
+    </div>
+
+    <!-- ======================================================= -->
+    <!-- PARTE MEDIA: LOGO DE LA EMPRESA                         -->
+    <!-- ======================================================= -->
+    <div class="border-t-2 border-b-2 border-gray-100 py-3 text-center my-2">
+      <label class="no-pdf block text-xs font-bold text-cmyk-dark uppercase mb-1">Cargar Logo de la Empresa:</label>
+      <input type="file" id="inputLogo" accept="image/*" onchange="cargarLogo(event)" class="no-pdf w-full text-xs text-slate-500 file:mr-2 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-gray-100 file:text-gray-700 mb-2">
+      
+      <div class="flex justify-center items-center min-h-[50px]">
+        <img id="previewLogo" src="" alt="Logo Empresa" class="hidden max-h-20 object-contain mx-auto">
+      </div>
+    </div>
+    <!-- ======================================================= -->
+
+    <!-- Firma de Conformidad -->
+    <div>
+      <label class="block text-xs font-bold text-cmyk-dark uppercase mb-1">Firma de Conformidad:</label>
+      <div class="border-2 border-gray-200 rounded-xl bg-gray-50 overflow-hidden">
+        <canvas id="canvasFirma" class="w-full h-32 touch-none"></canvas>
+      </div>
+      <button type="button" onclick="limpiarFirma()" class="no-pdf text-xs text-red-500 font-bold mt-1">Limpiar firma</button>
+    </div>
+
+    <!-- Botón de Generar PDF -->
+    <button onclick="generarPDF()" class="no-pdf w-full bg-cmyk-dark text-white py-3 rounded-xl font-bold hover:opacity-95 transition shadow-lg text-sm tracking-wide">
+      Generar y Guardar Reporte PDF
+    </button>
+  </div>
+
+  <script>
+    // Asignar fecha actual por defecto en el calendario
+    document.getElementById('fecha').valueAsDate = new Date();
+
+    const canvas = document.getElementById('canvasFirma');
+    const signaturePad = new SignaturePad(canvas);
+
+    function ajustarCanvas() {
+      const data = signaturePad.toData();
+      const ratio = Math.max(window.devicePixelRatio || 1, 1);
+      canvas.width = canvas.offsetWidth * ratio;
+      canvas.height = canvas.offsetHeight * ratio;
+      canvas.getContext("2d").scale(ratio, ratio);
+      signaturePad.clear();
+      signaturePad.fromData(data);
+    }
+    window.addEventListener("resize", ajustarCanvas);
+    ajustarCanvas();
+
+    function limpiarFirma() { signaturePad.clear(); }
+
+    function mostrarFotos(e) {
+      const galeria = document.getElementById('galeria');
+      galeria.innerHTML = '';
+      Array.from(e.target.files).forEach(file => {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const img = document.createElement('img');
+          img.src = event.target.result;
+          img.className = 'w-full h-24 object-cover rounded-lg border';
+          galeria.appendChild(img);
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function cargarLogo(event) {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const imgLogo = document.getElementById('previewLogo');
+          imgLogo.src = e.target.result;
+          imgLogo.classList.remove('hidden');
+        }
+        reader.readAsDataURL(file);
+      }
+    }
+
+    function generarPDF() {
+      const elemento = document.getElementById('reporte');
+      const elementosOcultar = elemento.querySelectorAll('.no-pdf');
+      
+      elementosOcultar.forEach(el => el.style.display = 'none');
+
+      const opciones = {
+        margin:       0.3,
+        filename:     `reporte_${document.getElementById('cliente').value || 'servicio'}_${document.getElementById('fecha').value}.pdf`,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2 },
+        jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+      };
+
+      html2pdf().set(opciones).from(elemento).save().then(() => {
+        elementosOcultar.forEach(el => el.style.display = '');
+      });
+    }
+  </script>
+</body>
+</html>
