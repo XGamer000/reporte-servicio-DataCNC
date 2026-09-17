@@ -91,13 +91,22 @@
     <!-- ======================================================= -->
     <!-- PARTE MEDIA: LOGO DE LA EMPRESA                         -->
     <!-- ======================================================= -->
-  
+    <div class="border-t-2 border-b-2 border-gray-100 py-3 text-center my-2">
+      <label class="no-pdf block text-xs font-bold text-cmyk-dark uppercase mb-1">Cargar Logo de la Empresa:</label>
+      <input type="file" id="inputLogo" accept="image/*" onchange="cargarLogo(event)" class="no-pdf w-full text-xs text-slate-500 file:mr-2 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-gray-100 file:text-gray-700 mb-2">
+      
+      <div class="flex justify-center items-center min-h-[50px]">
+        <img id="previewLogo" src="" alt="Logo Empresa" class="hidden max-h-20 object-contain mx-auto">
+      </div>
+    </div>
+    <!-- ======================================================= -->
 
-    <!-- Firma de Conformidad -->
+    <!-- Firma de Conformidad (Modificada con vista previa de imagen) -->
     <div>
       <label class="block text-xs font-bold text-cmyk-dark uppercase mb-1">Firma de Conformidad:</label>
       <div class="border-2 border-gray-200 rounded-xl bg-gray-50 overflow-hidden">
-        <canvas id="canvasFirma" class="w-full h-32 touch-none"></canvas>
+        <canvas id="canvasFirma" class="w-full h-32 touch-none block"></canvas>
+        <img id="imgFirma" class="hidden w-full h-32 object-contain bg-white" alt="Firma digital">
       </div>
       <button type="button" onclick="limpiarFirma()" class="no-pdf text-xs text-red-500 font-bold mt-1">Limpiar firma</button>
     </div>
@@ -112,12 +121,13 @@
     // =========================================================================
     // PEGA AQUÍ LA URL DE TU APLICACIÓN WEB DE GOOGLE APPS SCRIPT
     // =========================================================================
-    const URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbxNFO3Cr2HRUHfPooMjYabB0PncVvTsFVea9cbmet7P481ZZ6lLAEPKURxQn9IHY-z3Cw/exec ";
+    const URL_APPS_SCRIPT = "PEGA_AQUI_TU_URL_DE_APPS_SCRIPT";
 
     // Asignar fecha actual por defecto en el calendario
     document.getElementById('fecha').valueAsDate = new Date();
 
     const canvas = document.getElementById('canvasFirma');
+    const imgFirma = document.getElementById('imgFirma');
     const signaturePad = new SignaturePad(canvas);
 
     function ajustarCanvas() {
@@ -132,7 +142,12 @@
     window.addEventListener("resize", ajustarCanvas);
     ajustarCanvas();
 
-    function limpiarFirma() { signaturePad.clear(); }
+    function limpiarFirma() { 
+      signaturePad.clear(); 
+      imgFirma.src = '';
+      imgFirma.classList.add('hidden');
+      canvas.classList.remove('hidden');
+    }
 
     function mostrarFotos(e) {
       const galeria = document.getElementById('galeria');
@@ -171,6 +186,16 @@
         return;
       }
 
+      if (signaturePad.isEmpty()) {
+        alert("Por favor, agrega la firma de conformidad antes de generar el reporte.");
+        return;
+      }
+
+      // Convertir Firma a Imagen PNG para garantizar su renderizado en el PDF
+      imgFirma.src = signaturePad.toDataURL("image/png");
+      imgFirma.classList.remove('hidden');
+      canvas.classList.add('hidden');
+
       const btnGenerar = document.getElementById('btnGuardar');
       const textoOriginalBtn = btnGenerar.innerText;
       btnGenerar.disabled = true;
@@ -179,29 +204,29 @@
       const elemento = document.getElementById('reporte');
       const elementosOcultar = elemento.querySelectorAll('.no-pdf');
       
-      // Ocultar botones e inputs interactivos para que no aparezcan en el PDF
+      // Ocultar botones e inputs interactivos
       elementosOcultar.forEach(el => el.style.display = 'none');
 
       const opciones = {
         margin:       0.3,
         filename:     `reporte_${clienteInput.replace(/[^a-zA-Z0-9]/g, '_')}_${fechaInput}.pdf`,
         image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { scale: 2, useCORS: true },
+        html2canvas:  { scale: 2, useCORS: true, logging: false },
         jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
       };
 
       try {
-        // 1. Crear instancia de html2pdf
+        // 1. Crear la instancia de html2pdf
         const worker = html2pdf().set(opciones).from(elemento);
 
-        // 2. Generar el PDF como ArrayBuffer en memoria para el envío a la nube
+        // 2. Generar el PDF en memoria (ArrayBuffer) para la nube
         const pdfArrayBuffer = await worker.output('arraybuffer');
 
-        // 3. Descargar copia local directamente en el dispositivo móvil
+        // 3. Descargar copia local en el dispositivo
         await worker.save();
 
-        // 4. Si la URL de Apps Script está configurada, respaldar en la nube
-        if (URL_APPS_SCRIPT && URL_APPS_SCRIPT !== "PEGA_AQUI_TU_URL_DE_APPS_SCRIPT") {
+        // 4. Enviar respaldo a Google Apps Script
+        if (URL_APPS_SCRIPT && URL_APPS_SCRIPT !== https://script.google.com/macros/s/AKfycbxNFO3Cr2HRUHfPooMjYabB0PncVvTsFVea9cbmet7P481ZZ6lLAEPKURxQn9IHY-z3Cw/exec) {
           const pdfBase64 = arrayBufferToBase64(pdfArrayBuffer);
 
           const payload = {
@@ -223,21 +248,22 @@
 
           alert("✅ Reporte descargado localmente y respaldado en Google Drive / Sheets.");
         } else {
-          alert("✅ PDF descargado localmente.\n(Recuerda configurar la URL de Apps Script para respaldar en la nube).");
+          alert("✅ PDF descargado localmente.");
         }
 
       } catch (error) {
         console.error("Error procesando reporte:", error);
-        alert("⚠️ El PDF se generó, pero hubo un detalle en la conexión con la nube.");
+        alert("⚠️ Ocurrió un error al generar o respaldar el reporte.");
       } finally {
-        // Restaurar botones de la interfaz
+        // Restaurar la vista original
         elementosOcultar.forEach(el => el.style.display = '');
+        imgFirma.classList.add('hidden');
+        canvas.classList.remove('hidden');
         btnGenerar.disabled = false;
         btnGenerar.innerText = textoOriginalBtn;
       }
     }
 
-    // Función auxiliar para convertir el buffer binario del PDF a Base64
     function arrayBufferToBase64(buffer) {
       let binary = '';
       const bytes = new Uint8Array(buffer);
