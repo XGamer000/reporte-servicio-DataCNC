@@ -110,13 +110,18 @@
       <button type="button" onclick="limpiarFirma()" class="no-pdf text-xs text-red-500 font-bold mt-1">Limpiar firma</button>
     </div>
 
-    <!-- Botón de Generar PDF -->
-    <button onclick="generarPDF()" class="no-pdf w-full bg-cmyk-dark text-white py-3 rounded-xl font-bold hover:opacity-95 transition shadow-lg text-sm tracking-wide">
+    <!-- Botón de Generar y Guardar PDF -->
+    <button id="btnGuardar" onclick="generarPDF()" class="no-pdf w-full bg-cmyk-dark text-white py-3 rounded-xl font-bold hover:opacity-95 transition shadow-lg text-sm tracking-wide">
       Generar y Guardar Reporte PDF
     </button>
   </div>
 
   <script>
+    // =========================================================================
+    // PEGA AQUÍ LA URL DE TU APLICACIÓN WEB DE GOOGLE APPS SCRIPT
+    // =========================================================================
+    const URL_APPS_SCRIPT = "PEGA_AQUI_TU_URL_DE_APPS_SCRIPT";
+
     // Asignar fecha actual por defecto en el calendario
     document.getElementById('fecha').valueAsDate = new Date();
 
@@ -165,23 +170,89 @@
       }
     }
 
-    function generarPDF() {
+    async function generarPDF() {
+      const clienteInput = document.getElementById('cliente').value.trim();
+      const fechaInput = document.getElementById('fecha').value;
+
+      if (!clienteInput) {
+        alert("Por favor, ingresa el nombre del cliente o empresa.");
+        return;
+      }
+
+      const btnGenerar = document.getElementById('btnGuardar');
+      const textoOriginalBtn = btnGenerar.innerText;
+      btnGenerar.disabled = true;
+      btnGenerar.innerText = "⏳ Generando PDF y respaldando...";
+
       const elemento = document.getElementById('reporte');
       const elementosOcultar = elemento.querySelectorAll('.no-pdf');
       
+      // Ocultar botones e inputs interactivos para que no aparezcan en el PDF
       elementosOcultar.forEach(el => el.style.display = 'none');
 
       const opciones = {
         margin:       0.3,
-        filename:     `reporte_${document.getElementById('cliente').value || 'servicio'}_${document.getElementById('fecha').value}.pdf`,
+        filename:     `reporte_${clienteInput.replace(/[^a-zA-Z0-9]/g, '_')}_${fechaInput}.pdf`,
         image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { scale: 2 },
+        html2canvas:  { scale: 2, useCORS: true },
         jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
       };
 
-      html2pdf().set(opciones).from(elemento).save().then(() => {
+      try {
+        // 1. Crear instancia de html2pdf
+        const worker = html2pdf().set(opciones).from(elemento);
+
+        // 2. Generar el PDF como ArrayBuffer en memoria para el envío a la nube
+        const pdfArrayBuffer = await worker.output('arraybuffer');
+
+        // 3. Descargar copia local directamente en el dispositivo móvil
+        await worker.save();
+
+        // 4. Si la URL de Apps Script está configurada, respaldar en la nube
+        if (URL_APPS_SCRIPT && URL_APPS_SCRIPT !== "PEGA_AQUI_TU_URL_DE_APPS_SCRIPT") {
+          const pdfBase64 = arrayBufferToBase64(pdfArrayBuffer);
+
+          const payload = {
+            fecha: fechaInput,
+            cliente: clienteInput,
+            tipoMaquina: document.getElementById('tipoMaquina').value,
+            marca: document.getElementById('marca').value,
+            descMaquina: document.getElementById('descMaquina').value,
+            descripcion: document.getElementById('descripcion').value,
+            pdfBase64: pdfBase64
+          };
+
+          await fetch(URL_APPS_SCRIPT, {
+            method: "POST",
+            mode: "no-cors",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+          });
+
+          alert("✅ Reporte descargado localmente y respaldado en Google Drive / Sheets.");
+        } else {
+          alert("✅ PDF descargado localmente.\n(Recuerda configurar la URL de Apps Script para respaldar en la nube).");
+        }
+
+      } catch (error) {
+        console.error("Error procesando reporte:", error);
+        alert("⚠️ El PDF se generó, pero hubo un detalle en la conexión con la nube.");
+      } finally {
+        // Restaurar botones de la interfaz
         elementosOcultar.forEach(el => el.style.display = '');
-      });
+        btnGenerar.disabled = false;
+        btnGenerar.innerText = textoOriginalBtn;
+      }
+    }
+
+    // Función auxiliar para convertir el buffer binario del PDF a Base64
+    function arrayBufferToBase64(buffer) {
+      let binary = '';
+      const bytes = new Uint8Array(buffer);
+      for (let i = 0; i < bytes.byteLength; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      return window.btoa(binary);
     }
   </script>
 </body>
