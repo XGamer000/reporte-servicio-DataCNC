@@ -12,10 +12,9 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   
   <style>
-    /* Conversión de colores CMYK a HEX para CSS Web */
     :root {
-      --color-oscuro: #2A3A39; /* C:73 M:53 Y:60 K:42 */
-      --color-claro: #90A894;  /* C:45 M:25 Y:45 K:2 */
+      --color-oscuro: #2A3A39;
+      --color-claro: #90A894;
     }
     .bg-cmyk-dark { background-color: var(--color-oscuro); }
     .text-cmyk-dark { color: var(--color-oscuro); }
@@ -46,7 +45,7 @@
       <input type="text" id="cliente" placeholder="Nombre de la empresa" class="w-full border-2 border-gray-200 p-2 rounded-lg mt-1 text-sm bg-gray-50 focus:border-cmyk-dark focus:bg-white outline-none">
     </div>
 
-    <!-- Menú Desplegable: Tipo de Maquinaria -->
+    <!-- Tipo de Maquinaria -->
     <div>
       <label class="block text-xs font-bold text-cmyk-dark uppercase">Tipo de Maquinaria:</label>
       <select id="tipoMaquina" class="w-full border-2 border-gray-200 p-2 rounded-lg mt-1 text-sm bg-gray-50 focus:border-cmyk-dark focus:bg-white outline-none font-medium">
@@ -63,7 +62,7 @@
       </select>
     </div>
 
-    <!-- Marca y Descripción de la Máquina -->
+    <!-- Marca y Descripción -->
     <div class="grid grid-cols-1 gap-3">
       <div>
         <label class="block text-xs font-bold text-cmyk-dark uppercase">Marca de la Máquina:</label>
@@ -75,7 +74,7 @@
       </div>
     </div>
 
-    <!-- Diagnóstico / Trabajos Realizados -->
+    <!-- Diagnóstico -->
     <div>
       <label class="block text-xs font-bold text-cmyk-dark uppercase">Diagnóstico / Trabajos Realizados:</label>
       <textarea id="descripcion" placeholder="Detalle las pruebas o reparaciones hechas..." class="w-full border-2 border-gray-200 p-2 rounded-lg mt-1 text-sm bg-gray-50 focus:border-cmyk-dark focus:bg-white outline-none" rows="3"></textarea>
@@ -88,62 +87,67 @@
       <div id="galeria" class="grid grid-cols-2 gap-2 mt-2"></div>
     </div>
 
-    <!-- ======================================================= -->
-    <!-- PARTE MEDIA: LOGO DE LA EMPRESA                         -->
-    <!-- ======================================================= -->
+    <!-- Logo Empresa -->
     <div class="border-t-2 border-b-2 border-gray-100 py-3 text-center my-2">
       <label class="no-pdf block text-xs font-bold text-cmyk-dark uppercase mb-1">Cargar Logo de la Empresa:</label>
       <input type="file" id="inputLogo" accept="image/*" onchange="cargarLogo(event)" class="no-pdf w-full text-xs text-slate-500 file:mr-2 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-gray-100 file:text-gray-700 mb-2">
-      
       <div class="flex justify-center items-center min-h-[50px]">
         <img id="previewLogo" src="" alt="Logo Empresa" class="hidden max-h-20 object-contain mx-auto">
       </div>
     </div>
-    <!-- ======================================================= -->
 
-    <!-- Firma de Conformidad (Modificada con vista previa de imagen) -->
+    <!-- Firma de Conformidad -->
     <div>
       <label class="block text-xs font-bold text-cmyk-dark uppercase mb-1">Firma de Conformidad:</label>
-      <div class="border-2 border-gray-200 rounded-xl bg-gray-50 overflow-hidden">
-        <canvas id="canvasFirma" class="w-full h-32 touch-none block"></canvas>
-        <img id="imgFirma" class="hidden w-full h-32 object-contain bg-white" alt="Firma digital">
+      <div class="border-2 border-gray-200 rounded-xl bg-white overflow-hidden relative" style="height: 140px;">
+        <canvas id="canvasFirma" style="touch-action: none; width: 100%; height: 100%; display: block;"></canvas>
+        <img id="imgFirma" class="hidden w-full h-full object-contain bg-white" alt="Firma digital">
       </div>
       <button type="button" onclick="limpiarFirma()" class="no-pdf text-xs text-red-500 font-bold mt-1">Limpiar firma</button>
     </div>
 
-    <!-- Botón de Generar y Guardar PDF -->
+    <!-- Botón Generar PDF -->
     <button id="btnGuardar" onclick="generarPDF()" class="no-pdf w-full bg-cmyk-dark text-white py-3 rounded-xl font-bold hover:opacity-95 transition shadow-lg text-sm tracking-wide">
       Generar y Guardar Reporte PDF
     </button>
   </div>
 
   <script>
-    // =========================================================================
-    // PEGA AQUÍ LA URL DE TU APLICACIÓN WEB DE GOOGLE APPS SCRIPT
-    // =========================================================================
     const URL_APPS_SCRIPT = "(https://script.google.com/macros/s/AKfycbxNFO3Cr2HRUHfPooMjYabB0PncVvTsFVea9cbmet7P481ZZ6lLAEPKURxQn9IHY-z3Cw/exec)";
 
-    // Asignar fecha actual por defecto en el calendario
     document.getElementById('fecha').valueAsDate = new Date();
 
+    let signaturePad = null;
     const canvas = document.getElementById('canvasFirma');
     const imgFirma = document.getElementById('imgFirma');
-    const signaturePad = new SignaturePad(canvas);
 
-    function ajustarCanvas() {
-      const data = signaturePad.toData();
+    function inicializarFirma() {
+      const container = canvas.parentElement;
       const ratio = Math.max(window.devicePixelRatio || 1, 1);
-      canvas.width = canvas.offsetWidth * ratio;
-      canvas.height = canvas.offsetHeight * ratio;
-      canvas.getContext("2d").scale(ratio, ratio);
-      signaturePad.clear();
-      signaturePad.fromData(data);
-    }
-    window.addEventListener("resize", ajustarCanvas);
-    ajustarCanvas();
 
-    function limpiarFirma() { 
-      signaturePad.clear(); 
+      canvas.width = container.clientWidth * ratio;
+      canvas.height = container.clientHeight * ratio;
+      
+      const ctx = canvas.getContext("2d");
+      ctx.scale(ratio, ratio);
+
+      if (!signaturePad) {
+        signaturePad = new SignaturePad(canvas, {
+          backgroundColor: 'rgb(255, 255, 255)',
+          penColor: 'rgb(0, 0, 0)'
+        });
+      } else {
+        const data = signaturePad.toData();
+        signaturePad.clear();
+        signaturePad.fromData(data);
+      }
+    }
+
+    window.addEventListener("load", inicializarFirma);
+    window.addEventListener("resize", inicializarFirma);
+
+    function limpiarFirma() {
+      if (signaturePad) signaturePad.clear();
       imgFirma.src = '';
       imgFirma.classList.add('hidden');
       canvas.classList.remove('hidden');
@@ -164,15 +168,7 @@
       });
     }
 
-    function cargarLogo(event) {
-      const file = event.target.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          const imgLogo = document.getElementById('previewLogo');
-          imgLogo.src = e.target.result;
-          imgLogo.classList.remove('hidden');
-        }
+   
         reader.readAsDataURL(file);
       }
     }
@@ -186,47 +182,41 @@
         return;
       }
 
-      if (signaturePad.isEmpty()) {
-        alert("Por favor, agrega la firma de conformidad antes de generar el reporte.");
+      if (!signaturePad || signaturePad.isEmpty()) {
+        alert("Por favor, agrega la firma de conformidad antes de continuar.");
         return;
       }
-
-      // Convertir Firma a Imagen PNG para garantizar su renderizado en el PDF
-      imgFirma.src = signaturePad.toDataURL("image/png");
-      imgFirma.classList.remove('hidden');
-      canvas.classList.add('hidden');
 
       const btnGenerar = document.getElementById('btnGuardar');
       const textoOriginalBtn = btnGenerar.innerText;
       btnGenerar.disabled = true;
       btnGenerar.innerText = "⏳ Generando PDF y respaldando...";
 
-      const elemento = document.getElementById('reporte');
-      const elementosOcultar = elemento.querySelectorAll('.no-pdf');
-      
-      // Ocultar botones e inputs interactivos
-      elementosOcultar.forEach(el => el.style.display = 'none');
-
-      const opciones = {
-        margin:       0.3,
-        filename:     `reporte_${clienteInput.replace(/[^a-zA-Z0-9]/g, '_')}_${fechaInput}.pdf`,
-        image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { scale: 2, useCORS: true, logging: false },
-        jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
-      };
-
       try {
-        // 1. Crear la instancia de html2pdf
+        imgFirma.src = signaturePad.toDataURL("image/png");
+        imgFirma.classList.remove('hidden');
+        canvas.classList.add('hidden');
+
+        await new Promise(resolve => setTimeout(resolve, 400));
+
+        const elemento = document.getElementById('reporte');
+        const elementosOcultar = elemento.querySelectorAll('.no-pdf');
+        elementosOcultar.forEach(el => el.style.display = 'none');
+
+        const opciones = {
+          margin:       0.3,
+          filename:     `reporte_${clienteInput.replace(/[^a-zA-Z0-9]/g, '_')}_${fechaInput}.pdf`,
+          image:        { type: 'jpeg', quality: 0.98 },
+          html2canvas:  { scale: 2, useCORS: true, logging: false, scrollY: 0 },
+          jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' },
+          pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
+        };
+
         const worker = html2pdf().set(opciones).from(elemento);
-
-        // 2. Generar el PDF en memoria (ArrayBuffer) para la nube
         const pdfArrayBuffer = await worker.output('arraybuffer');
-
-        // 3. Descargar copia local en el dispositivo
         await worker.save();
 
-        // 4. Enviar respaldo a Google Apps Script
-        if (URL_APPS_SCRIPT && URL_APPS_SCRIPT !== https://script.google.com/macros/s/AKfycbxNFO3Cr2HRUHfPooMjYabB0PncVvTsFVea9cbmet7P481ZZ6lLAEPKURxQn9IHY-z3Cw/exec) {
+        if (URL_APPS_SCRIPT && URL_APPS_SCRIPT !== "PEGA_AQUI_TU_URL_DE_APPS_SCRIPT") {
           const pdfBase64 = arrayBufferToBase64(pdfArrayBuffer);
 
           const payload = {
@@ -253,9 +243,9 @@
 
       } catch (error) {
         console.error("Error procesando reporte:", error);
-        alert("⚠️ Ocurrió un error al generar o respaldar el reporte.");
+        alert("⚠️ Ocurrió un error al generar el PDF: " + error.message);
       } finally {
-        // Restaurar la vista original
+        const elementosOcultar = document.querySelectorAll('.no-pdf');
         elementosOcultar.forEach(el => el.style.display = '');
         imgFirma.classList.add('hidden');
         canvas.classList.remove('hidden');
