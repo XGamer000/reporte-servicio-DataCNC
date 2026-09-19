@@ -6,8 +6,6 @@
   <title>Bitácora de Servicio Técnico</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Firma táctil -->
-  <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
   <!-- Generación de PDF -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   
@@ -23,6 +21,13 @@
     .bg-cmyk-light { background-color: var(--color-claro); }
     .text-cmyk-light { color: var(--color-claro); }
     .border-cmyk-light { border-color: var(--color-claro); }
+
+    /* Desactivar gestos de desplazamiento nativos sobre la firma */
+    #canvasFirma {
+      touch-action: none;
+      -webkit-user-select: none;
+      user-select: none;
+    }
   </style>
 </head>
 <body class="bg-cmyk-light p-3 min-h-screen text-slate-800">
@@ -96,11 +101,11 @@
       </div>
     </div>
 
-    <!-- Firma de Conformidad -->
+    <!-- Firma de Conformidad Nativa HTML5 -->
     <div>
       <label class="block text-xs font-bold text-cmyk-dark uppercase mb-1">Firma de Conformidad:</label>
-      <div class="border-2 border-gray-200 rounded-xl bg-white overflow-hidden relative" style="height: 140px;">
-        <canvas id="canvasFirma" style="touch-action: none; width: 100%; height: 100%; display: block;"></canvas>
+      <div class="border-2 border-gray-300 rounded-xl bg-white overflow-hidden relative" style="height: 150px;">
+        <canvas id="canvasFirma" class="w-full h-full block cursor-crosshair"></canvas>
         <img id="imgFirma" class="hidden w-full h-full object-contain bg-white" alt="Firma digital">
       </div>
       <button type="button" onclick="limpiarFirma()" class="no-pdf text-xs text-red-500 font-bold mt-1">Limpiar firma</button>
@@ -113,41 +118,77 @@
   </div>
 
   <script>
-    const URL_APPS_SCRIPT = "(https://script.google.com/macros/s/AKfycbxNFO3Cr2HRUHfPooMjYabB0PncVvTsFVea9cbmet7P481ZZ6lLAEPKURxQn9IHY-z3Cw/exec)";
+    // =========================================================================
+    // PEGA AQUÍ LA URL DE TU APLICACIÓN WEB DE GOOGLE APPS SCRIPT
+    // =========================================================================
+    const URL_APPS_SCRIPT = "PEGA_AQUI_TU_URL_DE_APPS_SCRIPT";
 
     document.getElementById('fecha').valueAsDate = new Date();
 
-    let signaturePad = null;
+    // LÓGICA DE FIRMA NATIVA CON CANVAS Y POINTER EVENTS
     const canvas = document.getElementById('canvasFirma');
+    const ctx = canvas.getContext('2d');
     const imgFirma = document.getElementById('imgFirma');
 
-    function inicializarFirma() {
-      const container = canvas.parentElement;
-      const ratio = Math.max(window.devicePixelRatio || 1, 1);
+    let dibuja = false;
+    let tieneFirma = false;
 
-      canvas.width = container.clientWidth * ratio;
-      canvas.height = container.clientHeight * ratio;
+    function redimensionarCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) return;
       
-      const ctx = canvas.getContext("2d");
-      ctx.scale(ratio, ratio);
+      // Ajuste para pantallas retina/móviles de alta densidad
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      
+      ctx.scale(dpr, dpr);
+      ctx.lineWidth = 2.5;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = '#000000';
+    }
 
-      if (!signaturePad) {
-        signaturePad = new SignaturePad(canvas, {
-          backgroundColor: 'rgb(255, 255, 255)',
-          penColor: 'rgb(0, 0, 0)'
-        });
-      } else {
-        const data = signaturePad.toData();
-        signaturePad.clear();
-        signaturePad.fromData(data);
+    window.addEventListener('load', redimensionarCanvas);
+    window.addEventListener('resize', redimensionarCanvas);
+
+    function obtenerPosicion(e) {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top
+      };
+    }
+
+    canvas.addEventListener('pointerdown', (e) => {
+      dibuja = true;
+      tieneFirma = true;
+      canvas.setPointerCapture(e.pointerId);
+      const pos = obtenerPosicion(e);
+      ctx.beginPath();
+      ctx.moveTo(pos.x, pos.y);
+    });
+
+    canvas.addEventListener('pointermove', (e) => {
+      if (!dibuja) return;
+      const pos = obtenerPosicion(e);
+      ctx.lineTo(pos.x, pos.y);
+      ctx.stroke();
+    });
+
+    function detenerDibujo(e) {
+      if (dibuja) {
+        dibuja = false;
+        try { canvas.releasePointerCapture(e.pointerId); } catch(err){}
       }
     }
 
-    window.addEventListener("load", inicializarFirma);
-    window.addEventListener("resize", inicializarFirma);
+    canvas.addEventListener('pointerup', detenerDibujo);
+    canvas.addEventListener('pointercancel', detenerDibujo);
 
     function limpiarFirma() {
-      if (signaturePad) signaturePad.clear();
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      tieneFirma = false;
       imgFirma.src = '';
       imgFirma.classList.add('hidden');
       canvas.classList.remove('hidden');
@@ -168,7 +209,15 @@
       });
     }
 
-   
+    function cargarLogo(event) {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const imgLogo = document.getElementById('previewLogo');
+          imgLogo.src = e.target.result;
+          imgLogo.classList.remove('hidden');
+        }
         reader.readAsDataURL(file);
       }
     }
@@ -182,8 +231,13 @@
         return;
       }
 
-      if (!signaturePad || signaturePad.isEmpty()) {
-        alert("Por favor, agrega la firma de conformidad antes de continuar.");
+      if (!tieneFirma) {
+        alert("Por favor, firma de conformidad en el recuadro antes de continuar.");
+        return;
+      }
+
+      if (typeof html2pdf === 'undefined') {
+        alert("La librería de generación de PDF no ha cargado correctamente. Revisa tu conexión a internet.");
         return;
       }
 
@@ -193,11 +247,12 @@
       btnGenerar.innerText = "⏳ Generando PDF y respaldando...";
 
       try {
-        imgFirma.src = signaturePad.toDataURL("image/png");
+        // Convertir lienzo de firma a imagen PNG pura
+        imgFirma.src = canvas.toDataURL("image/png");
         imgFirma.classList.remove('hidden');
         canvas.classList.add('hidden');
 
-        await new Promise(resolve => setTimeout(resolve, 400));
+        await new Promise(resolve => setTimeout(resolve, 300));
 
         const elemento = document.getElementById('reporte');
         const elementosOcultar = elemento.querySelectorAll('.no-pdf');
@@ -207,7 +262,7 @@
           margin:       0.3,
           filename:     `reporte_${clienteInput.replace(/[^a-zA-Z0-9]/g, '_')}_${fechaInput}.pdf`,
           image:        { type: 'jpeg', quality: 0.98 },
-          html2canvas:  { scale: 2, useCORS: true, logging: false, scrollY: 0 },
+          html2canvas:  { scale: 2, useCORS: true, logging: false },
           jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' },
           pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
         };
@@ -243,7 +298,7 @@
 
       } catch (error) {
         console.error("Error procesando reporte:", error);
-        alert("⚠️ Ocurrió un error al generar el PDF: " + error.message);
+        alert("⚠️ Ocurrió un detalle al procesar el reporte: " + error.message);
       } finally {
         const elementosOcultar = document.querySelectorAll('.no-pdf');
         elementosOcultar.forEach(el => el.style.display = '');
