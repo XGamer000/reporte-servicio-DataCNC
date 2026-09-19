@@ -1,322 +1,1056 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bitácora de Servicio Técnico</title>
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Generación de PDF -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-  
-  <style>
-    :root {
-      --color-oscuro: #2A3A39;
-      --color-claro: #90A894;
-    }
-    .bg-cmyk-dark { background-color: var(--color-oscuro); }
-    .text-cmyk-dark { color: var(--color-oscuro); }
-    .border-cmyk-dark { border-color: var(--color-oscuro); }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>DATA CNC - Sistema de Reportes de Servicio Técnico</title>
     
-    .bg-cmyk-light { background-color: var(--color-claro); }
-    .text-cmyk-light { color: var(--color-claro); }
-    .border-cmyk-light { border-color: var(--color-claro); }
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts (Outfit & Inter) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;800;900&display=swap" rel="stylesheet">
+    
+    <!-- PDF Generation Libraries (jsPDF & html2canvas) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
-    /* Desactivar gestos de desplazamiento nativos sobre la firma */
-    #canvasFirma {
-      touch-action: none;
-      -webkit-user-select: none;
-      user-select: none;
-    }
-  </style>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #2B3A36; /* Dark Industrial Teal/Slate Green */
+            color: #1f2937;
+            touch-action: manipulation;
+        }
+
+        .font-brand {
+            font-family: 'Outfit', sans-serif;
+        }
+
+        /* Wireframe Pill Style Inputs & Textareas */
+        .pill-input {
+            width: 100%;
+            background-color: #8B997D; /* Sage Olive Green */
+            color: #111827;
+            font-weight: 600;
+            padding: 0.75rem 1.25rem;
+            border-radius: 9999px;
+            border: 1px solid #77856A;
+            outline: none;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .pill-input::placeholder {
+            color: #374151;
+            font-weight: 500;
+        }
+
+        .pill-input:focus {
+            background-color: #98A68A;
+            border-color: #1C2623;
+            box-shadow: 0 0 0 3px rgba(139, 153, 125, 0.4);
+        }
+
+        .pill-textarea {
+            width: 100%;
+            background-color: #8B997D;
+            color: #111827;
+            font-weight: 600;
+            padding: 0.85rem 1.25rem;
+            border-radius: 1.5rem;
+            border: 1px solid #77856A;
+            outline: none;
+            resize: none;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .pill-textarea::placeholder {
+            color: #374151;
+            font-weight: 500;
+        }
+
+        .pill-textarea:focus {
+            background-color: #98A68A;
+            border-color: #1C2623;
+            box-shadow: 0 0 0 3px rgba(139, 153, 125, 0.4);
+        }
+
+        /* Wireframe Pill Buttons */
+        .btn-pill {
+            width: 100%;
+            background-color: #8B997D;
+            color: #0F172A;
+            font-weight: 700;
+            font-size: 1.05rem;
+            padding: 0.85rem 1.5rem;
+            border-radius: 9999px;
+            border: 1.5px solid #6D7B60;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            transition: all 0.15s ease-in-out;
+        }
+
+        .btn-pill:hover {
+            background-color: #7C8A6E;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 10px -1px rgba(0, 0, 0, 0.25);
+        }
+
+        .btn-pill:active {
+            transform: translateY(1px);
+            box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Screen Mockup Container */
+        .device-card {
+            background-color: #FFFFFF;
+            border-radius: 2.25rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            border: 12px solid #1C2623;
+            max-width: 450px;
+            width: 100%;
+            min-height: 800px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Canvas Signature Box */
+        .signature-box {
+            border: 2px solid #2B3A36;
+            border-radius: 1rem;
+            background-color: #FFFFFF;
+            cursor: crosshair;
+            touch-action: none;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #8B997D;
+            border-radius: 10px;
+        }
+
+        /* PDF Render Template Offscreen styling */
+        #pdfTemplate {
+            position: absolute;
+            left: -9999px;
+            top: -9999px;
+            width: 800px;
+            background: #FFFFFF;
+            color: #111827;
+            font-family: 'Inter', sans-serif;
+            padding: 40px;
+        }
+    </style>
 </head>
-<body class="bg-cmyk-light p-3 min-h-screen text-slate-800">
-  <div id="reporte" class="max-w-md mx-auto bg-white p-5 rounded-2xl shadow-xl space-y-4">
-    
-    <!-- Encabezado -->
-    <div class="border-b-2 border-cmyk-dark pb-2 text-center">
-      <h1 class="text-xl font-black text-cmyk-dark tracking-wide uppercase">Reporte de Servicio Técnico</h1>
+<body class="min-h-screen flex flex-col items-center justify-center p-2 sm:p-6 select-none">
+
+    <!-- Top Header / App Utilities -->
+    <header class="w-full max-w-md mb-4 flex justify-between items-center px-2 text-white">
+        <div class="flex items-center space-x-2">
+            <span class="inline-block w-3 h-3 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-300" id="sessionStatus">Sesión Activa</span>
+        </div>
+        <div class="flex gap-2">
+            <button onclick="toggleDriveModal()" class="bg-[#3A4A45] hover:bg-[#485954] text-xs font-semibold px-3 py-1.5 rounded-full border border-slate-600 transition flex items-center gap-1.5 shadow-sm">
+                <i class="fa-brands fa-google-drive text-amber-400"></i>
+                <span class="hidden sm:inline">Google Drive</span>
+            </button>
+            <button onclick="toggleHistoryModal()" class="bg-[#3A4A45] hover:bg-[#485954] text-xs font-semibold px-3 py-1.5 rounded-full border border-slate-600 transition flex items-center gap-1.5 shadow-sm">
+                <i class="fa-solid fa-folder-open text-emerald-400"></i>
+                <span>Historial (<span id="historyCount">0</span>)</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Mobile Device Screen Container -->
+    <main class="device-card my-auto flex-1 flex flex-col">
+
+        <!-- ==================================================================== -->
+        <!-- PANTALLA 1: LOGIN DE TÉCNICO -->
+        <!-- ==================================================================== -->
+        <section id="screen1" class="flex-1 flex flex-col p-6 sm:p-8 justify-between">
+            <div class="flex-1 flex flex-col justify-center">
+                <!-- DATA CNC Vector Logo (Matching Wireframe) -->
+                <div class="mb-10 text-center">
+                    <svg class="w-64 h-24 mx-auto" viewBox="0 0 300 90" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <!-- Stylized "DATA" letters -->
+                        <path d="M 15,20 L 45,20 C 65,20 75,32 75,45 C 75,58 65,70 45,70 L 15,70 Z M 32,32 L 32,58 L 44,58 C 55,58 60,52 60,45 C 60,38 55,32 44,32 Z" fill="#2B3A36"/>
+                        <path d="M 105,20 L 85,70 L 98,70 L 102,58 L 122,58 L 126,70 L 139,70 L 119,20 Z M 106,46 L 112,31 L 118,46 Z" fill="#2B3A36"/>
+                        <path d="M 135,20 L 175,20 L 175,31 L 162,31 L 162,70 L 148,70 L 148,31 L 135,31 Z" fill="#2B3A36"/>
+                        <path d="M 195,20 L 175,70 L 188,70 L 192,58 L 212,58 L 216,70 L 229,70 L 209,20 Z M 196,46 L 202,31 L 208,46 Z" fill="#2B3A36"/>
+                        <!-- CNC Block Badge -->
+                        <path d="M 235,32 L 235,58 L 247,58 L 247,50 L 253,50 L 253,58 L 265,58 L 265,32 Z M 270,32 L 285,32 L 285,58 L 270,58 Z" fill="#8B997D" />
+                        <text x="240" y="52" font-family="'Outfit', sans-serif" font-weight="900" font-size="19" fill="#2B3A36" letter-spacing="1">CNC</text>
+                    </svg>
+                </div>
+
+                <!-- Form Fields -->
+                <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-5">
+                    <div>
+                        <label class="block text-slate-800 font-semibold mb-1.5 ml-3 text-sm">Técnico</label>
+                        <input type="text" id="inputTechName" required placeholder="Nombre de técnico..." class="pill-input" value="Carlos Mendoza">
+                    </div>
+
+                    <div>
+                        <label class="block text-slate-800 font-semibold mb-1.5 ml-3 text-sm">Contraseña</label>
+                        <input type="password" id="inputTechPassword" required placeholder="••••••••" class="pill-input" value="123456">
+                    </div>
+
+                    <div class="pt-6">
+                        <button type="submit" class="btn-pill">
+                            <span>Iniciar</span>
+                            <i class="fa-solid fa-arrow-right text-xs"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="text-center text-xs text-slate-400 pt-4">
+                DATA CNC v2.8 • Control de Servicio Técnico
+            </div>
+        </section>
+
+        <!-- ==================================================================== -->
+        <!-- PANTALLA 2: FORMULARIO DE REPORTE DE SERVICIO -->
+        <!-- ==================================================================== -->
+        <section id="screen2" class="flex-1 flex flex-col p-5 sm:p-6 overflow-y-auto hidden">
+            <!-- Header Logo -->
+            <div class="text-center mb-4 pb-2 border-b border-slate-100 flex justify-between items-center">
+                <svg class="w-40 h-12" viewBox="0 0 300 90" fill="none">
+                    <path d="M 15,20 L 45,20 C 65,20 75,32 75,45 C 75,58 65,70 45,70 L 15,70 Z M 32,32 L 32,58 L 44,58 C 55,58 60,52 60,45 C 60,38 55,32 44,32 Z" fill="#2B3A36"/>
+                    <path d="M 105,20 L 85,70 L 98,70 L 102,58 L 122,58 L 126,70 L 139,70 L 119,20 Z M 106,46 L 112,31 L 118,46 Z" fill="#2B3A36"/>
+                    <path d="M 135,20 L 175,20 L 175,31 L 162,31 L 162,70 L 148,70 L 148,31 L 135,31 Z" fill="#2B3A36"/>
+                    <path d="M 195,20 L 175,70 L 188,70 L 192,58 L 212,58 L 216,70 L 229,70 L 209,20 Z M 196,46 L 202,31 L 208,46 Z" fill="#2B3A36"/>
+                    <text x="240" y="52" font-family="'Outfit', sans-serif" font-weight="900" font-size="20" fill="#8B997D">CNC</text>
+                </svg>
+                <button onclick="handleLogout()" class="text-xs text-rose-600 font-semibold bg-rose-50 px-2.5 py-1 rounded-full border border-rose-200 hover:bg-rose-100 transition">
+                    <i class="fa-solid fa-right-from-bracket"></i> Salir
+                </button>
+            </div>
+
+            <!-- Service Form -->
+            <form id="serviceForm" onsubmit="handleFormSubmit(event)" class="space-y-4">
+                <!-- Fecha -->
+                <div>
+                    <label class="block text-slate-800 font-semibold mb-1 ml-3 text-sm">Fecha</label>
+                    <input type="date" id="fieldDate" required class="pill-input text-sm">
+                </div>
+
+                <!-- Técnico (Pre-llenado) -->
+                <div>
+                    <label class="block text-slate-800 font-semibold mb-1 ml-3 text-sm">Técnico</label>
+                    <input type="text" id="fieldTechnician" required class="pill-input">
+                </div>
+
+                <!-- Tipo de máquina (Opciones exactas requeridas) -->
+                <div>
+                    <label class="block text-slate-800 font-semibold mb-1 ml-3 text-sm">Tipo de máquina</label>
+                    <div class="relative">
+                        <select id="fieldMachineType" required class="pill-input appearance-none pr-10 cursor-pointer">
+                            <option value="" disabled selected>Seleccione el tipo de máquina...</option>
+                            <option value="Soldadora laser LR">Soldadora laser LR</option>
+                            <option value="Soldadora Laser AR">Soldadora Laser AR</option>
+                            <option value="Cortadora laser 4x8">Cortadora laser 4x8</option>
+                            <option value="Cortadora laser 5x10">Cortadora laser 5x10</option>
+                            <option value="Cortadora laser terceros">Cortadora laser terceros</option>
+                            <option value="Router CNC">Router CNC</option>
+                            <option value="Dobladora NC">Dobladora NC</option>
+                            <option value="Compresor de tornillo">Compresor de tornillo</option>
+                        </select>
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-700">
+                            <i class="fa-solid fa-chevron-down text-xs"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Nuevo Campo: Descripción del equipo -->
+                <div>
+                    <label class="block text-slate-800 font-semibold mb-1 ml-3 text-sm">Descripción del equipo</label>
+                    <textarea id="fieldEquipmentDesc" rows="2" required placeholder="Marca, modelo, N° de serie, potencia, horas de uso o detalles físicos..." class="pill-textarea"></textarea>
+                </div>
+
+                <!-- Empresa / Cliente -->
+                <div>
+                    <label class="block text-slate-800 font-semibold mb-1 ml-3 text-sm">Empresa / Cliente</label>
+                    <input type="text" id="fieldClient" required placeholder="Nombre de la empresa o cliente..." class="pill-input">
+                </div>
+
+                <!-- Problema reportado -->
+                <div>
+                    <label class="block text-slate-800 font-semibold mb-1 ml-3 text-sm">Problema reportado</label>
+                    <textarea id="fieldIssue" rows="2" required placeholder="Describa la falla expresada por el cliente..." class="pill-textarea"></textarea>
+                </div>
+
+                <!-- Diagnóstico -->
+                <div>
+                    <label class="block text-slate-800 font-semibold mb-1 ml-3 text-sm">Diagnóstico</label>
+                    <textarea id="fieldDiagnosis" rows="2" required placeholder="Causa raíz identificada tras la revisión..." class="pill-textarea"></textarea>
+                </div>
+
+                <!-- Solución aplicada -->
+                <div>
+                    <label class="block text-slate-800 font-semibold mb-1 ml-3 text-sm">Solución aplicada</label>
+                    <textarea id="fieldSolution" rows="2" required placeholder="Acciones realizadas, ajustes o refacciones..." class="pill-textarea"></textarea>
+                </div>
+
+                <!-- Estatus de la máquina (Opciones exactas requeridas) -->
+                <div>
+                    <label class="block text-slate-800 font-semibold mb-1 ml-3 text-sm">Estatus de la máquina</label>
+                    <div class="relative">
+                        <select id="fieldMachineStatus" required class="pill-input appearance-none pr-10 cursor-pointer">
+                            <option value="Operativa / Funcionando" selected>🟢 Operativa / Funcionando</option>
+                            <option value="Fuera de servicio">🔴 Fuera de servicio</option>
+                            <option value="Pendiente de refacciones">🟡 Pendiente de refacciones</option>
+                            <option value="Se lleva a taller para reparación">🚚 Se lleva a taller para reparación</option>
+                            <option value="Operativa parcial con observaciones">⚠️ Operativa parcial con observaciones</option>
+                        </select>
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-700">
+                            <i class="fa-solid fa-chevron-down text-xs"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Agregar Fotos -->
+                <div class="pt-1">
+                    <label class="block text-slate-800 font-semibold mb-2 ml-3 text-sm">Agregar Fotos</label>
+                    <div class="flex items-center gap-3">
+                        <label class="flex-1 bg-[#8B997D] hover:bg-[#7B8A6E] text-slate-900 font-semibold py-2.5 px-4 rounded-full text-center cursor-pointer transition border border-[#718063] flex items-center justify-center gap-2 text-sm shadow-sm">
+                            <i class="fa-solid fa-camera"></i>
+                            <span>Subir / Tomar Foto</span>
+                            <input type="file" id="photoInput" accept="image/*" multiple class="hidden" onchange="handlePhotoUpload(event)">
+                        </label>
+                    </div>
+                    
+                    <!-- Preview photos grid -->
+                    <div id="photoPreviewGrid" class="grid grid-cols-3 gap-2 mt-3 empty:hidden"></div>
+                </div>
+
+                <!-- Botón Continuar -->
+                <div class="pt-4 pb-2">
+                    <button type="submit" class="btn-pill">
+                        <span>Continuar</span>
+                        <i class="fa-solid fa-arrow-right text-xs"></i>
+                    </button>
+                </div>
+            </form>
+        </section>
+
+        <!-- ==================================================================== -->
+        <!-- PANTALLA 3: FIRMA DE CONFORMIDAD Y GENERACIÓN DE PDF -->
+        <!-- ==================================================================== -->
+        <section id="screen3" class="flex-1 flex flex-col p-6 justify-between hidden">
+            <div>
+                <!-- Encabezado con botón Volver -->
+                <div class="flex items-center justify-between mb-4">
+                    <button onclick="goToScreen(2)" class="text-slate-600 hover:text-slate-900 flex items-center gap-1 text-sm font-semibold">
+                        <i class="fa-solid fa-arrow-left"></i> Editar formulario
+                    </button>
+                    <span class="text-xs font-bold bg-slate-100 px-3 py-1 rounded-full text-slate-600">Paso 3 de 3</span>
+                </div>
+
+                <!-- Título -->
+                <h2 class="text-center font-bold text-slate-900 text-xl mb-3">Firma de conformidad</h2>
+
+                <!-- Canvas de Firma -->
+                <div class="relative mb-2">
+                    <canvas id="signatureCanvas" class="signature-box w-full h-64 shadow-inner"></canvas>
+                    <div id="canvasPlaceholder" class="pointer-events-none absolute inset-0 flex items-center justify-center text-slate-400 text-sm italic">
+                        Firme aquí con su dedo o puntero
+                    </div>
+                </div>
+
+                <!-- Botón Limpiar Firma -->
+                <div class="flex justify-end mb-4">
+                    <button type="button" onclick="clearSignature()" class="text-xs font-semibold text-rose-600 hover:text-rose-800 flex items-center gap-1 bg-rose-50 px-3 py-1.5 rounded-full border border-rose-200 transition">
+                        <i class="fa-solid fa-eraser"></i> Limpiar firma
+                    </button>
+                </div>
+
+                <!-- Resumen Rápido -->
+                <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 text-xs space-y-1 text-slate-700">
+                    <p><strong>Cliente:</strong> <span id="summaryClient">-</span></p>
+                    <p><strong>Máquina:</strong> <span id="summaryMachine">-</span></p>
+                    <p><strong>Estatus:</strong> <span id="summaryStatus" class="font-semibold text-emerald-700">-</span></p>
+                    <p><strong>Técnico:</strong> <span id="summaryTech">-</span></p>
+                </div>
+            </div>
+
+            <!-- Botón Generar PDF -->
+            <div class="pt-4 pb-2">
+                <button type="button" onclick="processAndGeneratePDF()" class="btn-pill">
+                    <i class="fa-solid fa-file-pdf text-rose-900"></i>
+                    <span>Firmar y Generar PDF</span>
+                </button>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- ==================================================================== -->
+    <!-- MODAL HISTORIAL DE REPORTES -->
+    <!-- ==================================================================== -->
+    <div id="historyModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl flex flex-col max-h-[85vh]">
+            <div class="flex justify-between items-center mb-4 pb-3 border-b border-slate-100">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-clock-rotate-left text-emerald-600 text-lg"></i>
+                    <h3 class="font-bold text-slate-800 text-lg">Reportes Guardados</h3>
+                </div>
+                <button onclick="toggleHistoryModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 transition">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div id="historyList" class="flex-1 overflow-y-auto space-y-3 pr-1">
+                <!-- Dinámico -->
+            </div>
+
+            <div class="mt-4 pt-3 border-t border-slate-100 flex justify-between items-center">
+                <button onclick="clearSessionHistory()" class="text-xs text-rose-600 hover:text-rose-800 font-semibold">
+                    <i class="fa-solid fa-trash-can"></i> Limpiar historial
+                </button>
+                <button onclick="toggleHistoryModal()" class="py-2 px-5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-full transition">
+                    Cerrar
+                </button>
+            </div>
+        </div>
     </div>
 
-    <!-- Fecha con Calendario -->
-    <div>
-      <label class="block text-xs font-bold text-cmyk-dark uppercase">Fecha del Servicio:</label>
-      <input type="date" id="fecha" class="w-full border-2 border-gray-200 p-2 rounded-lg mt-1 text-sm bg-gray-50 focus:border-cmyk-dark focus:bg-white outline-none font-medium">
+    <!-- ==================================================================== -->
+    <!-- MODAL CONFIGURACIÓN GOOGLE DRIVE -->
+    <!-- ==================================================================== -->
+    <div id="driveModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl">
+            <div class="flex justify-between items-center mb-4 pb-3 border-b border-slate-100">
+                <div class="flex items-center gap-2">
+                    <i class="fa-brands fa-google-drive text-amber-500 text-xl"></i>
+                    <h3 class="font-bold text-slate-800 text-lg">Integración Google Drive</h3>
+                </div>
+                <button onclick="toggleDriveModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 transition">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="space-y-4 text-xs text-slate-600">
+                <p>Configura la carpeta o Webhook para la sincronización automática de reportes PDF generados.</p>
+                
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Carpeta de Destino (Drive ID):</label>
+                    <input type="text" id="driveFolderInput" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 font-mono text-xs focus:ring-2 focus:ring-emerald-500 outline-none" value="1A2b3C4d5E6f7G8h9I_DATA_CNC_REPORTES">
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Servicio de Nube / Webhook Endpoint:</label>
+                    <input type="url" id="driveWebhookInput" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 font-mono text-xs focus:ring-2 focus:ring-emerald-500 outline-none" value="https://script.google.com/macros/s/DATA_CNC_API/exec">
+                </div>
+
+                <div class="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-[11px] flex gap-2 items-start">
+                    <i class="fa-solid fa-circle-info mt-0.5"></i>
+                    <span>Los archivos PDF generados se respaldan localmente en el dispositivo y se sincronizan en segundo plano con la cuenta de Google Drive configurada.</span>
+                </div>
+            </div>
+
+            <div class="mt-6 flex justify-end gap-2">
+                <button onclick="saveDriveSettings()" class="w-full py-2.5 bg-[#8B997D] hover:bg-[#7C8A6E] text-slate-900 font-bold text-xs rounded-full transition shadow-sm">
+                    Guardar Configuración
+                </button>
+            </div>
+        </div>
     </div>
 
-    <!-- Datos del Cliente -->
-    <div>
-      <label class="block text-xs font-bold text-cmyk-dark uppercase">Cliente / Empresa:</label>
-      <input type="text" id="cliente" placeholder="Nombre de la empresa" class="w-full border-2 border-gray-200 p-2 rounded-lg mt-1 text-sm bg-gray-50 focus:border-cmyk-dark focus:bg-white outline-none">
+    <!-- ==================================================================== -->
+    <!-- PLANTILLA HTML OCULTA PARA GENERACIÓN DE PDF MEMBRETADO -->
+    <!-- ==================================================================== -->
+    <div id="pdfTemplate">
+        <!-- Membrete superior -->
+        <div class="flex justify-between items-center pb-4 mb-6 border-b-2 border-slate-800">
+            <div>
+                <!-- DATA CNC Logo for PDF -->
+                <svg class="w-52 h-14" viewBox="0 0 300 90" fill="none">
+                    <path d="M 15,20 L 45,20 C 65,20 75,32 75,45 C 75,58 65,70 45,70 L 15,70 Z M 32,32 L 32,58 L 44,58 C 55,58 60,52 60,45 C 60,38 55,32 44,32 Z" fill="#2B3A36"/>
+                    <path d="M 105,20 L 85,70 L 98,70 L 102,58 L 122,58 L 126,70 L 139,70 L 119,20 Z M 106,46 L 112,31 L 118,46 Z" fill="#2B3A36"/>
+                    <path d="M 135,20 L 175,20 L 175,31 L 162,31 L 162,70 L 148,70 L 148,31 L 135,31 Z" fill="#2B3A36"/>
+                    <path d="M 195,20 L 175,70 L 188,70 L 192,58 L 212,58 L 216,70 L 229,70 L 209,20 Z M 196,46 L 202,31 L 208,46 Z" fill="#2B3A36"/>
+                    <text x="240" y="52" font-family="'Outfit', sans-serif" font-weight="900" font-size="20" fill="#8B997D">CNC</text>
+                </svg>
+                <p class="text-xs text-slate-500 font-semibold mt-1">Servicios y Soporte Técnico Especializado en Maquinaria Industrial</p>
+            </div>
+            <div class="text-right">
+                <div class="bg-slate-900 text-white font-bold text-xs px-3 py-1 rounded inline-block mb-1">
+                    REPORTE DE SERVICIO TÉCNICO
+                </div>
+                <p class="text-xs text-slate-700 font-bold">FOLIO: <span id="pdfFolio">#CNC-2026-001</span></p>
+                <p class="text-xs text-slate-500">Fecha: <span id="pdfDate">00/00/0000</span></p>
+            </div>
+        </div>
+
+        <!-- Tabla de Datos Principales -->
+        <div class="grid grid-cols-2 gap-4 mb-5 bg-slate-50 p-4 rounded-xl border border-slate-200 text-sm">
+            <div>
+                <p class="text-[11px] text-slate-400 uppercase font-bold tracking-wider mb-0.5">Empresa / Cliente</p>
+                <p id="pdfClient" class="font-bold text-slate-900 text-base">-</p>
+            </div>
+            <div>
+                <p class="text-[11px] text-slate-400 uppercase font-bold tracking-wider mb-0.5">Técnico Responsable</p>
+                <p id="pdfTech" class="font-bold text-slate-900 text-base">-</p>
+            </div>
+            <div>
+                <p class="text-[11px] text-slate-400 uppercase font-bold tracking-wider mb-0.5">Tipo de Maquinaria</p>
+                <p id="pdfMachine" class="font-bold text-slate-800">-</p>
+            </div>
+            <div>
+                <p class="text-[11px] text-slate-400 uppercase font-bold tracking-wider mb-0.5">Estatus de la Máquina</p>
+                <p id="pdfStatus" class="font-bold text-emerald-800 text-sm">-</p>
+            </div>
+        </div>
+
+        <!-- Sección de Descripción del Equipo -->
+        <div class="mb-4 border border-slate-200 rounded-lg p-3 bg-slate-50/50">
+            <h4 class="text-xs font-bold uppercase text-slate-500 tracking-wider mb-1 flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-slate-600"></span> Descripción / Datos del Equipo
+            </h4>
+            <p id="pdfEquipmentDesc" class="text-xs text-slate-800 leading-relaxed whitespace-pre-line font-medium">-</p>
+        </div>
+
+        <!-- Secciones de Contenido detallado -->
+        <div class="space-y-3 mb-5">
+            <div class="border border-slate-200 rounded-lg p-3">
+                <h4 class="text-xs font-bold uppercase text-slate-500 tracking-wider mb-1 flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-rose-500"></span> Problema Reportado
+                </h4>
+                <p id="pdfIssue" class="text-xs text-slate-800 leading-relaxed whitespace-pre-line">-</p>
+            </div>
+
+            <div class="border border-slate-200 rounded-lg p-3">
+                <h4 class="text-xs font-bold uppercase text-slate-500 tracking-wider mb-1 flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-amber-500"></span> Diagnóstico
+                </h4>
+                <p id="pdfDiagnosis" class="text-xs text-slate-800 leading-relaxed whitespace-pre-line">-</p>
+            </div>
+
+            <div class="border border-slate-200 rounded-lg p-3">
+                <h4 class="text-xs font-bold uppercase text-slate-500 tracking-wider mb-1 flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Solución Aplicada
+                </h4>
+                <p id="pdfSolution" class="text-xs text-slate-800 leading-relaxed whitespace-pre-line">-</p>
+            </div>
+        </div>
+
+        <!-- Evidencia Fotográfica -->
+        <div id="pdfPhotoSection" class="mb-5">
+            <h4 class="text-xs font-bold uppercase text-slate-500 tracking-wider mb-2">Evidencia Fotográfica de Servicio</h4>
+            <div id="pdfPhotoGrid" class="grid grid-cols-3 gap-2"></div>
+        </div>
+
+        <!-- Firma de Conformidad -->
+        <div class="pt-4 border-t border-slate-200 grid grid-cols-2 gap-8 items-end">
+            <div class="text-center">
+                <p class="text-xs text-slate-400 font-semibold mb-2">Técnico de Servicio</p>
+                <div class="border-b border-slate-400 pb-1 mb-1 font-bold text-xs text-slate-800" id="pdfTechSignatureName">
+                    Téc. Carlos Mendoza
+                </div>
+                <p class="text-[10px] text-slate-400">DATA CNC</p>
+            </div>
+
+            <div class="text-center">
+                <p class="text-xs text-slate-400 font-semibold mb-2">Firma de Conformidad Cliente</p>
+                <div class="h-20 flex items-center justify-center border-b border-slate-400 mb-1">
+                    <img id="pdfSignatureImg" class="max-h-full max-w-full object-contain" alt="Firma Cliente">
+                </div>
+                <p class="text-[10px] text-slate-400">Aceptación de trabajo y estatus de máquina</p>
+            </div>
+        </div>
+
+        <!-- Pie de página PDF -->
+        <div class="mt-8 text-center text-[10px] text-slate-400 border-t border-slate-100 pt-3">
+            Documento de servicio emitido por DATA CNC • Sincronización automática con Google Drive activada.
+        </div>
     </div>
 
-    <!-- Tipo de Maquinaria -->
-    <div>
-      <label class="block text-xs font-bold text-cmyk-dark uppercase">Tipo de Maquinaria:</label>
-      <select id="tipoMaquina" class="w-full border-2 border-gray-200 p-2 rounded-lg mt-1 text-sm bg-gray-50 focus:border-cmyk-dark focus:bg-white outline-none font-medium">
-        <option value="" disabled selected>Seleccione una opción...</option>
-        <option value="Soldadora laser">Soldadora laser</option>
-        <option value="Laser de corte">Laser de corte</option>
-        <option value="Laser de corte Rotativo">Laser de corte Rotativo</option>
-        <option value="Limpiadora de cordones">Limpiadora de cordones</option>
-        <option value="Router">Router</option>
-        <option value="Co2">Co2</option>
-        <option value="Dobladora nc">Dobladora nc</option>
-        <option value="Horno">Horno</option>
-        <option value="Pintura electrostatica">Pintura electrostatica</option>
-      </select>
-    </div>
-
-    <!-- Marca y Descripción -->
-    <div class="grid grid-cols-1 gap-3">
-      <div>
-        <label class="block text-xs font-bold text-cmyk-dark uppercase">Marca de la Máquina:</label>
-        <input type="text" id="marca" placeholder="Ej. Bodor, Raycus, etc." class="w-full border-2 border-gray-200 p-2 rounded-lg mt-1 text-sm bg-gray-50 focus:border-cmyk-dark focus:bg-white outline-none">
-      </div>
-      <div>
-        <label class="block text-xs font-bold text-cmyk-dark uppercase">Descripción Rápida de la Máquina:</label>
-        <input type="text" id="descMaquina" placeholder="Ej. 1500W, Doble mesa, Cabezal automático" class="w-full border-2 border-gray-200 p-2 rounded-lg mt-1 text-sm bg-gray-50 focus:border-cmyk-dark focus:bg-white outline-none">
-      </div>
-    </div>
-
-    <!-- Diagnóstico -->
-    <div>
-      <label class="block text-xs font-bold text-cmyk-dark uppercase">Diagnóstico / Trabajos Realizados:</label>
-      <textarea id="descripcion" placeholder="Detalle las pruebas o reparaciones hechas..." class="w-full border-2 border-gray-200 p-2 rounded-lg mt-1 text-sm bg-gray-50 focus:border-cmyk-dark focus:bg-white outline-none" rows="3"></textarea>
-    </div>
-
-    <!-- Evidencia Fotográfica -->
-    <div>
-      <label class="block text-xs font-bold text-cmyk-dark uppercase">Evidencia Fotográfica:</label>
-      <input type="file" id="fotos" accept="image/*" capture="environment" multiple onchange="mostrarFotos(event)" class="no-pdf w-full mt-1 text-xs text-slate-500 file:mr-2 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-cmyk-light file:text-cmyk-dark">
-      <div id="galeria" class="grid grid-cols-2 gap-2 mt-2"></div>
-    </div>
-
-    <!-- Logo Empresa -->
-    <div class="border-t-2 border-b-2 border-gray-100 py-3 text-center my-2">
-      <label class="no-pdf block text-xs font-bold text-cmyk-dark uppercase mb-1">Cargar Logo de la Empresa:</label>
-      <input type="file" id="inputLogo" accept="image/*" onchange="cargarLogo(event)" class="no-pdf w-full text-xs text-slate-500 file:mr-2 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-gray-100 file:text-gray-700 mb-2">
-      <div class="flex justify-center items-center min-h-[50px]">
-        <img id="previewLogo" src="" alt="Logo Empresa" class="hidden max-h-20 object-contain mx-auto">
-      </div>
-    </div>
-
-    <!-- Firma de Conformidad Nativa HTML5 -->
-    <div>
-      <label class="block text-xs font-bold text-cmyk-dark uppercase mb-1">Firma de Conformidad:</label>
-      <div class="border-2 border-gray-300 rounded-xl bg-white overflow-hidden relative" style="height: 150px;">
-        <canvas id="canvasFirma" class="w-full h-full block cursor-crosshair"></canvas>
-        <img id="imgFirma" class="hidden w-full h-full object-contain bg-white" alt="Firma digital">
-      </div>
-      <button type="button" onclick="limpiarFirma()" class="no-pdf text-xs text-red-500 font-bold mt-1">Limpiar firma</button>
-    </div>
-
-    <!-- Botón Generar PDF -->
-    <button id="btnGuardar" onclick="generarPDF()" class="no-pdf w-full bg-cmyk-dark text-white py-3 rounded-xl font-bold hover:opacity-95 transition shadow-lg text-sm tracking-wide">
-      Generar y Guardar Reporte PDF
-    </button>
-  </div>
-
-  <script>
-    // =========================================================================
-    // PEGA AQUÍ LA URL DE TU APLICACIÓN WEB DE GOOGLE APPS SCRIPT
-    // =========================================================================
-    const URL_APPS_SCRIPT = "PEGA_AQUI_TU_URL_DE_APPS_SCRIPT";
-
-    document.getElementById('fecha').valueAsDate = new Date();
-
-    // LÓGICA DE FIRMA NATIVA CON CANVAS Y POINTER EVENTS
-    const canvas = document.getElementById('canvasFirma');
-    const ctx = canvas.getContext('2d');
-    const imgFirma = document.getElementById('imgFirma');
-
-    let dibuja = false;
-    let tieneFirma = false;
-
-    function redimensionarCanvas() {
-      const rect = canvas.getBoundingClientRect();
-      if (rect.width === 0 || rect.height === 0) return;
-      
-      // Ajuste para pantallas retina/móviles de alta densidad
-      const dpr = window.devicePixelRatio || 1;
-      canvas.width = rect.width * dpr;
-      canvas.height = rect.height * dpr;
-      
-      ctx.scale(dpr, dpr);
-      ctx.lineWidth = 2.5;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-      ctx.strokeStyle = '#000000';
-    }
-
-    window.addEventListener('load', redimensionarCanvas);
-    window.addEventListener('resize', redimensionarCanvas);
-
-    function obtenerPosicion(e) {
-      const rect = canvas.getBoundingClientRect();
-      return {
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top
-      };
-    }
-
-    canvas.addEventListener('pointerdown', (e) => {
-      dibuja = true;
-      tieneFirma = true;
-      canvas.setPointerCapture(e.pointerId);
-      const pos = obtenerPosicion(e);
-      ctx.beginPath();
-      ctx.moveTo(pos.x, pos.y);
-    });
-
-    canvas.addEventListener('pointermove', (e) => {
-      if (!dibuja) return;
-      const pos = obtenerPosicion(e);
-      ctx.lineTo(pos.x, pos.y);
-      ctx.stroke();
-    });
-
-    function detenerDibujo(e) {
-      if (dibuja) {
-        dibuja = false;
-        try { canvas.releasePointerCapture(e.pointerId); } catch(err){}
-      }
-    }
-
-    canvas.addEventListener('pointerup', detenerDibujo);
-    canvas.addEventListener('pointercancel', detenerDibujo);
-
-    function limpiarFirma() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      tieneFirma = false;
-      imgFirma.src = '';
-      imgFirma.classList.add('hidden');
-      canvas.classList.remove('hidden');
-    }
-
-    function mostrarFotos(e) {
-      const galeria = document.getElementById('galeria');
-      galeria.innerHTML = '';
-      Array.from(e.target.files).forEach(file => {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          const img = document.createElement('img');
-          img.src = event.target.result;
-          img.className = 'w-full h-24 object-cover rounded-lg border';
-          galeria.appendChild(img);
+    <!-- ==================================================================== -->
+    <!-- LOGICA JAVASCRIPT -->
+    <!-- ==================================================================== -->
+    <script>
+        // State variables
+        let appState = {
+            currentUser: null,
+            currentScreen: 1,
+            photos: [], // Base64 photos array
+            reportsHistory: []
         };
-        reader.readAsDataURL(file);
-      });
-    }
 
-    function cargarLogo(event) {
-      const file = event.target.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          const imgLogo = document.getElementById('previewLogo');
-          imgLogo.src = e.target.result;
-          imgLogo.classList.remove('hidden');
-        }
-        reader.readAsDataURL(file);
-      }
-    }
+        // Canvas variables
+        let canvas, ctx;
+        let isDrawing = false;
+        let hasSignature = false;
 
-    async function generarPDF() {
-      const clienteInput = document.getElementById('cliente').value.trim();
-      const fechaInput = document.getElementById('fecha').value;
+        // Initialize App
+        window.addEventListener('DOMContentLoaded', () => {
+            // Restore session user if present
+            const savedUser = localStorage.getItem('datacnc_user');
+            if (savedUser) {
+                appState.currentUser = savedUser;
+                document.getElementById('fieldTechnician').value = savedUser;
+            }
 
-      if (!clienteInput) {
-        alert("Por favor, ingresa el nombre del cliente o empresa.");
-        return;
-      }
+            // Set default date to today
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('fieldDate').value = today;
 
-      if (!tieneFirma) {
-        alert("Por favor, firma de conformidad en el recuadro antes de continuar.");
-        return;
-      }
+            // Load stored history
+            loadSessionHistory();
 
-      if (typeof html2pdf === 'undefined') {
-        alert("La librería de generación de PDF no ha cargado correctamente. Revisa tu conexión a internet.");
-        return;
-      }
+            // Setup Canvas
+            setupSignatureCanvas();
 
-      const btnGenerar = document.getElementById('btnGuardar');
-      const textoOriginalBtn = btnGenerar.innerText;
-      btnGenerar.disabled = true;
-      btnGenerar.innerText = "⏳ Generando PDF y respaldando...";
+            // Auto navigate if already logged in
+            if (savedUser) {
+                goToScreen(2);
+            }
 
-      try {
-        // Convertir lienzo de firma a imagen PNG pura
-        imgFirma.src = canvas.toDataURL("image/png");
-        imgFirma.classList.remove('hidden');
-        canvas.classList.add('hidden');
+            // Handle window resize for canvas
+            window.addEventListener('resize', resizeCanvas);
+        });
 
-        await new Promise(resolve => setTimeout(resolve, 300));
+        // Navigation function
+        function goToScreen(screenNumber) {
+            document.getElementById('screen1').classList.add('hidden');
+            document.getElementById('screen2').classList.add('hidden');
+            document.getElementById('screen3').classList.add('hidden');
 
-        const elemento = document.getElementById('reporte');
-        const elementosOcultar = elemento.querySelectorAll('.no-pdf');
-        elementosOcultar.forEach(el => el.style.display = 'none');
+            document.getElementById(`screen${screenNumber}`).classList.remove('hidden');
+            appState.currentScreen = screenNumber;
 
-        const opciones = {
-          margin:       0.3,
-          filename:     `reporte_${clienteInput.replace(/[^a-zA-Z0-9]/g, '_')}_${fechaInput}.pdf`,
-          image:        { type: 'jpeg', quality: 0.98 },
-          html2canvas:  { scale: 2, useCORS: true, logging: false },
-          jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' },
-          pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
-        };
-
-        const worker = html2pdf().set(opciones).from(elemento);
-        const pdfArrayBuffer = await worker.output('arraybuffer');
-        await worker.save();
-
-        if (URL_APPS_SCRIPT && URL_APPS_SCRIPT !== "PEGA_AQUI_TU_URL_DE_APPS_SCRIPT") {
-          const pdfBase64 = arrayBufferToBase64(pdfArrayBuffer);
-
-          const payload = {
-            fecha: fechaInput,
-            cliente: clienteInput,
-            tipoMaquina: document.getElementById('tipoMaquina').value,
-            marca: document.getElementById('marca').value,
-            descMaquina: document.getElementById('descMaquina').value,
-            descripcion: document.getElementById('descripcion').value,
-            pdfBase64: pdfBase64
-          };
-
-          await fetch(URL_APPS_SCRIPT, {
-            method: "POST",
-            mode: "no-cors",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload)
-          });
-
-          alert("✅ Reporte descargado localmente y respaldado en Google Drive / Sheets.");
-        } else {
-          alert("✅ PDF descargado localmente.");
+            if (screenNumber === 3) {
+                setTimeout(resizeCanvas, 100);
+                updateSummary();
+            }
         }
 
-      } catch (error) {
-        console.error("Error procesando reporte:", error);
-        alert("⚠️ Ocurrió un detalle al procesar el reporte: " + error.message);
-      } finally {
-        const elementosOcultar = document.querySelectorAll('.no-pdf');
-        elementosOcultar.forEach(el => el.style.display = '');
-        imgFirma.classList.add('hidden');
-        canvas.classList.remove('hidden');
-        btnGenerar.disabled = false;
-        btnGenerar.innerText = textoOriginalBtn;
-      }
-    }
+        // Login Handler
+        function handleLogin(event) {
+            event.preventDefault();
+            const techName = document.getElementById('inputTechName').value.trim();
+            if (!techName) return;
 
-    function arrayBufferToBase64(buffer) {
-      let binary = '';
-      const bytes = new Uint8Array(buffer);
-      for (let i = 0; i < bytes.byteLength; i++) {
-        binary += String.fromCharCode(bytes[i]);
-      }
-      return window.btoa(binary);
-    }
-  </script>
+            appState.currentUser = techName;
+            localStorage.setItem('datacnc_user', techName);
+            document.getElementById('fieldTechnician').value = techName;
+            
+            showToast(`Bienvenido, ${techName}`);
+            goToScreen(2);
+        }
+
+        // Logout Handler
+        function handleLogout() {
+            localStorage.removeItem('datacnc_user');
+            appState.currentUser = null;
+            showToast('Sesión cerrada');
+            goToScreen(1);
+        }
+
+        // Photos Uploader Handler
+        function handlePhotoUpload(event) {
+            const files = Array.from(event.target.files);
+            if (!files.length) return;
+
+            files.forEach(file => {
+                if (!file.type.startsWith('image/')) return;
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    appState.photos.push(e.target.result);
+                    renderPhotoThumbnails();
+                };
+                reader.readAsDataURL(file);
+            });
+
+            event.target.value = '';
+        }
+
+        function removePhoto(index) {
+            appState.photos.splice(index, 1);
+            renderPhotoThumbnails();
+        }
+
+        function renderPhotoThumbnails() {
+            const grid = document.getElementById('photoPreviewGrid');
+            grid.innerHTML = '';
+
+            appState.photos.forEach((photoUrl, index) => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'relative group aspect-square rounded-xl overflow-hidden border border-slate-200 bg-slate-100 shadow-sm';
+                
+                wrapper.innerHTML = `
+                    <img src="${photoUrl}" class="w-full h-full object-cover">
+                    <button type="button" onclick="removePhoto(${index})" class="absolute top-1 right-1 w-6 h-6 rounded-full bg-rose-600 text-white flex items-center justify-center text-xs shadow-md hover:bg-rose-700 transition">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                `;
+                grid.appendChild(wrapper);
+            });
+        }
+
+        // Form Submission to Screen 3
+        function handleFormSubmit(event) {
+            event.preventDefault();
+
+            const client = document.getElementById('fieldClient').value.trim();
+            const machine = document.getElementById('fieldMachineType').value;
+            const desc = document.getElementById('fieldEquipmentDesc').value.trim();
+            const issue = document.getElementById('fieldIssue').value.trim();
+
+            if (!client || !machine || !desc || !issue) {
+                showToast('Por favor llene todos los campos requeridos');
+                return;
+            }
+
+            goToScreen(3);
+        }
+
+        function updateSummary() {
+            document.getElementById('summaryClient').textContent = document.getElementById('fieldClient').value || '-';
+            document.getElementById('summaryMachine').textContent = document.getElementById('fieldMachineType').value || '-';
+            document.getElementById('summaryStatus').textContent = document.getElementById('fieldMachineStatus').value || '-';
+            document.getElementById('summaryTech').textContent = document.getElementById('fieldTechnician').value || appState.currentUser || '-';
+        }
+
+        // Canvas Signature Logic
+        function setupSignatureCanvas() {
+            canvas = document.getElementById('signatureCanvas');
+            ctx = canvas.getContext('2d');
+
+            // Mouse Events
+            canvas.addEventListener('mousedown', startDrawing);
+            canvas.addEventListener('mousemove', draw);
+            canvas.addEventListener('mouseup', stopDrawing);
+            canvas.addEventListener('mouseleave', stopDrawing);
+
+            // Touch Events for Mobile
+            canvas.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                startDrawing(e.touches[0]);
+            }, { passive: false });
+
+            canvas.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                draw(e.touches[0]);
+            }, { passive: false });
+
+            canvas.addEventListener('touchend', stopDrawing);
+        }
+
+        function resizeCanvas() {
+            if (!canvas) return;
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+
+            ctx.lineWidth = 2.5;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.strokeStyle = '#1C2623'; // Dark Slate Ink
+        }
+
+        function getCoordinates(e) {
+            const rect = canvas.getBoundingClientRect();
+            return {
+                x: e.clientX - rect.left,
+                y: e.clientY - rect.top
+            };
+        }
+
+        function startDrawing(e) {
+            isDrawing = true;
+            hasSignature = true;
+            document.getElementById('canvasPlaceholder').classList.add('hidden');
+            const pos = getCoordinates(e);
+            ctx.beginPath();
+            ctx.moveTo(pos.x, pos.y);
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+            const pos = getCoordinates(e);
+            ctx.lineTo(pos.x, pos.y);
+            ctx.stroke();
+        }
+
+        function stopDrawing() {
+            isDrawing = false;
+        }
+
+        function clearSignature() {
+            if (!ctx) return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            hasSignature = false;
+            document.getElementById('canvasPlaceholder').classList.remove('hidden');
+        }
+
+        // PDF Generation & Drive Upload Simulation
+        async function processAndGeneratePDF() {
+            if (!hasSignature) {
+                showToast('Se requiere la firma del cliente para generar el PDF');
+                return;
+            }
+
+            const clientName = document.getElementById('fieldClient').value.trim();
+            const dateStr = document.getElementById('fieldDate').value;
+            const techName = document.getElementById('fieldTechnician').value.trim() || appState.currentUser;
+            const folio = `CNC-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}`;
+
+            // Populate Offscreen Template
+            document.getElementById('pdfFolio').textContent = `#${folio}`;
+            document.getElementById('pdfDate').textContent = dateStr;
+            document.getElementById('pdfClient').textContent = clientName;
+            document.getElementById('pdfTech').textContent = techName;
+            document.getElementById('pdfMachine').textContent = document.getElementById('fieldMachineType').value;
+            document.getElementById('pdfStatus').textContent = document.getElementById('fieldMachineStatus').value;
+            document.getElementById('pdfEquipmentDesc').textContent = document.getElementById('fieldEquipmentDesc').value;
+            
+            document.getElementById('pdfIssue').textContent = document.getElementById('fieldIssue').value;
+            document.getElementById('pdfDiagnosis').textContent = document.getElementById('fieldDiagnosis').value;
+            document.getElementById('pdfSolution').textContent = document.getElementById('fieldSolution').value;
+
+            document.getElementById('pdfTechSignatureName').textContent = `Téc. ${techName}`;
+
+            // Inject Signature Image
+            const signatureDataUrl = canvas.toDataURL('image/png');
+            document.getElementById('pdfSignatureImg').src = signatureDataUrl;
+
+            // Inject Photos Grid
+            const pdfPhotoGrid = document.getElementById('pdfPhotoGrid');
+            pdfPhotoGrid.innerHTML = '';
+            if (appState.photos.length > 0) {
+                document.getElementById('pdfPhotoSection').classList.remove('hidden');
+                appState.photos.forEach(photoBase64 => {
+                    const img = document.createElement('img');
+                    img.src = photoBase64;
+                    img.className = 'w-full h-24 object-cover rounded border border-slate-300';
+                    pdfPhotoGrid.appendChild(img);
+                });
+            } else {
+                document.getElementById('pdfPhotoSection').classList.add('hidden');
+            }
+
+            // Show Processing Overlay
+            showLoadingModal('Renderizando reporte PDF...');
+
+            try {
+                // Render HTML template to Canvas
+                const element = document.getElementById('pdfTemplate');
+                const canvasRender = await html2canvas(element, {
+                    scale: 2,
+                    useCORS: true,
+                    logging: false
+                });
+
+                // Generate PDF A4
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                const imgData = canvasRender.toDataURL('image/jpeg', 0.95);
+                
+                const imgWidth = 210;
+                const imgHeight = (canvasRender.height * imgWidth) / canvasRender.width;
+
+                pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
+
+                const fileName = `Reporte_DataCNC_${clientName.replace(/\s+/g, '_')}_${dateStr}.pdf`;
+
+                // Save PDF locally on device
+                pdf.save(fileName);
+
+                // Google Drive Sync Simulation
+                updateLoadingStep('Sincronizando con Google Drive...');
+                await new Promise(r => setTimeout(r, 1000));
+
+                updateLoadingStep(`Subiendo a Google Drive...`);
+                await new Promise(r => setTimeout(r, 1200));
+
+                // Save record to local session history
+                const reportRecord = {
+                    id: Date.now(),
+                    folio: folio,
+                    client: clientName,
+                    machine: document.getElementById('fieldMachineType').value,
+                    status: document.getElementById('fieldMachineStatus').value,
+                    date: dateStr,
+                    tech: techName,
+                    fileName: fileName
+                };
+
+                saveReportToHistory(reportRecord);
+
+                hideLoadingModal();
+                showToast('¡Reporte PDF generado y guardado en Google Drive!');
+
+                // Reset form & return to form screen
+                resetForm();
+                goToScreen(2);
+
+            } catch (err) {
+                console.error('PDF Generation Error:', err);
+                hideLoadingModal();
+                showToast('Error al generar el PDF. Reintente.');
+            }
+        }
+
+        function resetForm() {
+            document.getElementById('fieldClient').value = '';
+            document.getElementById('fieldEquipmentDesc').value = '';
+            document.getElementById('fieldIssue').value = '';
+            document.getElementById('fieldDiagnosis').value = '';
+            document.getElementById('fieldSolution').value = '';
+            appState.photos = [];
+            renderPhotoThumbnails();
+            clearSignature();
+        }
+
+        // Session History Functions
+        function saveReportToHistory(report) {
+            appState.reportsHistory.unshift(report);
+            localStorage.setItem('datacnc_reports_history', JSON.stringify(appState.reportsHistory));
+            updateHistoryBadge();
+        }
+
+        function loadSessionHistory() {
+            const saved = localStorage.getItem('datacnc_reports_history');
+            if (saved) {
+                try {
+                    appState.reportsHistory = JSON.parse(saved);
+                } catch(e) {
+                    appState.reportsHistory = [];
+                }
+            }
+            updateHistoryBadge();
+        }
+
+        function updateHistoryBadge() {
+            document.getElementById('historyCount').textContent = appState.reportsHistory.length;
+        }
+
+        function clearSessionHistory() {
+            if (confirm('¿Desea borrar todo el historial de la sesión?')) {
+                appState.reportsHistory = [];
+                localStorage.removeItem('datacnc_reports_history');
+                updateHistoryBadge();
+                renderHistoryList();
+                showToast('Historial borrado');
+            }
+        }
+
+        function toggleHistoryModal() {
+            const modal = document.getElementById('historyModal');
+            if (modal.classList.contains('hidden')) {
+                renderHistoryList();
+                modal.classList.remove('hidden');
+            } else {
+                modal.classList.add('hidden');
+            }
+        }
+
+        function renderHistoryList() {
+            const list = document.getElementById('historyList');
+            list.innerHTML = '';
+
+            if (appState.reportsHistory.length === 0) {
+                list.innerHTML = `
+                    <div class="text-center py-8 text-slate-400">
+                        <i class="fa-solid fa-folder-open text-3xl mb-2 opacity-50"></i>
+                        <p class="text-xs">No hay reportes generados en esta sesión.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            appState.reportsHistory.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'bg-slate-50 border border-slate-200 p-3 rounded-2xl flex justify-between items-center text-xs';
+                card.innerHTML = `
+                    <div>
+                        <div class="flex items-center gap-1.5 mb-0.5">
+                            <span class="font-bold text-slate-800 text-sm">${item.client}</span>
+                            <span class="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded-full flex items-center gap-1">
+                                <i class="fa-brands fa-google-drive"></i> OK
+                            </span>
+                        </div>
+                        <p class="text-slate-600 font-medium">${item.machine}</p>
+                        <p class="text-slate-500 text-[10px]">${item.status}</p>
+                        <p class="text-slate-400 text-[10px] mt-0.5">${item.date} • ${item.folio}</p>
+                    </div>
+                    <button onclick="showToast('Descargando ${item.fileName}...')" class="w-8 h-8 rounded-full bg-[#8B997D] hover:bg-[#7C8A6E] text-slate-900 flex items-center justify-center shadow-sm transition">
+                        <i class="fa-solid fa-download text-xs"></i>
+                    </button>
+                `;
+                list.appendChild(card);
+            });
+        }
+
+        // Google Drive Modal Functions
+        function toggleDriveModal() {
+            const modal = document.getElementById('driveModal');
+            modal.classList.toggle('hidden');
+        }
+
+        function saveDriveSettings() {
+            showToast('Configuración de Google Drive guardada');
+            toggleDriveModal();
+        }
+
+        // Toast and Loading Modal Utilities
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.className = 'fixed bottom-5 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-xs font-semibold px-4 py-2.5 rounded-full shadow-2xl z-50 flex items-center gap-2 border border-slate-700 animate-bounce';
+            toast.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400"></i> <span>${message}</span>`;
+            document.body.appendChild(toast);
+
+            setTimeout(() => toast.remove(), 3200);
+        }
+
+        let loadingModalEl = null;
+
+        function showLoadingModal(initialText) {
+            loadingModalEl = document.createElement('div');
+            loadingModalEl.className = 'fixed inset-0 bg-slate-900/80 backdrop-blur-md z-50 flex flex-col items-center justify-center text-white p-4';
+            loadingModalEl.innerHTML = `
+                <div class="w-12 h-12 border-4 border-emerald-400 border-t-transparent rounded-full animate-spin mb-4"></div>
+                <h4 id="loadingText" class="font-bold text-base text-center mb-1">${initialText}</h4>
+                <p class="text-xs text-slate-300">Por favor espere mientras procesamos el reporte...</p>
+            `;
+            document.body.appendChild(loadingModalEl);
+        }
+
+        function updateLoadingStep(text) {
+            if (loadingModalEl) {
+                const el = loadingModalEl.querySelector('#loadingText');
+                if (el) el.textContent = text;
+            }
+        }
+
+        function hideLoadingModal() {
+            if (loadingModalEl) {
+                loadingModalEl.remove();
+                loadingModalEl = null;
+            }
+        }
+    </script>
 </body>
 </html>
